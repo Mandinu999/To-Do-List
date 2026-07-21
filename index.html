@@ -33,7 +33,6 @@
       --badge-bg: rgba(0,0,0,0.1);
     }
 
-    /* Light mode structural overrides */
     body.light-mode .ambient-bg { background: #e0e5ec; }
     body.light-mode .glow-1 { background: #6366f1; opacity: 0.3; }
     body.light-mode .glow-2 { background: #ec4899; opacity: 0.3; }
@@ -65,7 +64,6 @@
     body.light-mode .task-card.done span { color: rgba(0, 0, 0, 0.4); }
     body.light-mode .del-btn { color: rgba(0, 0, 0, 0.4); }
 
-    /* Animated Theme Switch */
     .theme-switch-wrapper {
       margin-top: auto;
       padding: 20px 14px 10px;
@@ -118,7 +116,6 @@
     .slider .sun { right: 7px; }
     .slider .moon { left: 7px; }
 
-    /* Vibrant Ambient Mesh Behind Glass */
     .ambient-bg {
       position: absolute;
       inset: 0;
@@ -139,7 +136,6 @@
     .glow-1 { background: #6366f1; top: -100px; left: -100px; }
     .glow-2 { background: #a855f7; bottom: -100px; right: -100px; }
 
-    /* Custom Spotify-style Drag Titlebar */
     .titlebar {
       height: 38px;
       display: flex;
@@ -150,7 +146,7 @@
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      -webkit-app-region: drag; /* Makes titlebar draggable */
+      -webkit-app-region: drag; 
       z-index: 20;
     }
 
@@ -165,7 +161,7 @@
     .window-controls {
       display: flex;
       gap: 8px;
-      -webkit-app-region: no-drag; /* Allows clicking buttons */
+      -webkit-app-region: no-drag; 
     }
 
     .win-btn {
@@ -179,7 +175,6 @@
     .btn-min { background: #ffbd2e; }
     .btn-max { background: #27c93f; }
 
-    /* App Layout */
     .app-container {
       flex: 1;
       display: flex;
@@ -188,7 +183,6 @@
       position: relative;
     }
 
-    /* Glass Sidebar */
     .sidebar {
       width: 240px;
       padding: 24px 16px;
@@ -224,7 +218,6 @@
       color: #fff;
     }
 
-    /* Main Content Area */
     .main-view {
       flex: 1;
       padding: 32px;
@@ -271,7 +264,6 @@
 
     .add-btn:active { transform: scale(0.96); }
 
-    /* Task List Items */
     .task-list {
       display: flex;
       flex-direction: column;
@@ -306,8 +298,7 @@
       cursor: pointer;
     }
     .del-btn:hover { color: #f43f5e; }
-    
-    /* Liquid Glass Overlays */
+
     .glass-overlay {
       position: fixed;
       inset: 0;
@@ -354,7 +345,6 @@
     .glass-btn.primary { background: rgba(99, 102, 241, 0.6); border-color: rgba(99, 102, 241, 0.8); }
     .glass-btn.primary:hover { background: rgba(99, 102, 241, 0.8); }
 
-    /* Light mode overlay overrides */
     body.light-mode .glass-overlay { background: rgba(255, 255, 255, 0.2); }
     body.light-mode .glass-dialog {
       background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.8);
@@ -365,7 +355,6 @@
     body.light-mode .glass-btn:hover { background: rgba(255,255,255,0.8); }
     body.light-mode .glass-btn.primary { color: #fff; }
 
-    /* Date Picker Custom UI */
     #liquidDatePicker {
       position: absolute; display: none; z-index: 50; padding: 16px; width: 260px;
       margin-top: 8px; transform: scale(0.95); opacity: 0; transform-origin: top;
@@ -399,7 +388,6 @@
     <div class="glow-2"></div>
   </div>
 
-  <!-- Window Chrome Header -->
   <glass-surface id="header-glass" width="100%" height="38px" border-radius="0" displace="8" distortion-scale="-120" red-offset="2" green-offset="10" blue-offset="15" brightness="55" opacity="0.85" blur="12" mix-blend-mode="screen" style="-webkit-app-region: drag; z-index: 10;">
     <div class="titlebar">
       <span class="app-title">To Do List</span>
@@ -411,7 +399,6 @@
     </div>
   </glass-surface>
 
-  <!-- Spotify-style Sidebar + Main Dashboard -->
   <div class="app-container">
     <glass-surface id="main-glass" width="100%" height="100%" border-radius="0" displace="10" distortion-scale="-180" red-offset="5" green-offset="15" blue-offset="25" brightness="50" opacity="0.9" blur="15" mix-blend-mode="screen" style="flex: 1;">
       <div style="display: flex; width: 100%; height: 100%;">
@@ -480,7 +467,6 @@
       localStorage.setItem('tasks', JSON.stringify(tasks));
     }
 
-    // Initialize with render
     window.addEventListener('DOMContentLoaded', () => {
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'light') {
@@ -647,7 +633,7 @@
         selectedDate = null;
         document.getElementById('customDateText').innerText = 'Select Date';
       }
-      if (isStared) toggleStar(); // Reset
+      if (isStared) toggleStar(); 
       
       saveTasks();
       renderTasks();

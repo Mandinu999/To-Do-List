@@ -14,7 +14,7 @@ class GlassSurface extends HTMLElement {
     const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
     const isFirefox = /Firefox/.test(navigator.userAgent);
     if (isWebkit || isFirefox) return false;
-    // Assume supported for modern chromium
+    
     return true;
   }
 
@@ -24,7 +24,7 @@ class GlassSurface extends HTMLElement {
     }
     this.render();
     this.setupObserver();
-    // Use requestAnimationFrame to ensure DOM is ready
+    
     requestAnimationFrame(() => this.updateDisplacementMap());
   }
 
@@ -130,7 +130,6 @@ class GlassSurface extends HTMLElement {
       </svg>
     `;
 
-    // Must be data URI
     return `data:image/svg+xml,${encodeURIComponent(svgContent.trim())}`;
   }
 
@@ -202,7 +201,7 @@ class GlassSurface extends HTMLElement {
         :host {
           display: flex;
           flex-direction: column;
-          /* Ensure the host size maps to its parent's constraints */
+          
           min-width: 0;
           min-height: 0;
         }

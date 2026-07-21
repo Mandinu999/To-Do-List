@@ -5,8 +5,8 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 950,
     height: 650,
-    frame: false,            // Removes OS border & standard titlebar
-    transparent: true,      // Enables window transparency
+    frame: false,
+    transparent: true,
     hasShadow: true,
     webPreferences: {
       nodeIntegration: true,
@@ -16,7 +16,8 @@ function createWindow() {
 
   win.loadFile('index.html');
 
-  // Native window control listeners
+
+
   ipcMain.on('win-minimize', () => win.minimize());
   ipcMain.on('win-maximize', () => win.isMaximized() ? win.unmaximize() : win.maximize());
   ipcMain.on('win-close', () => win.close());
