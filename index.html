@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Liquid To-Do</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      color: #fff;
+      --star-inactive: rgba(255,255,255,0.2);
+      --border-inactive: rgba(255,255,255,0.3);
+      --badge-bg: rgba(255,255,255,0.1);
+      transition: color 0.4s, background-color 0.4s;
+    }
+
+    body.light-mode {
+      color: #1a1a24;
+      --star-inactive: rgba(0,0,0,0.2);
+      --border-inactive: rgba(0,0,0,0.3);
+      --badge-bg: rgba(0,0,0,0.1);
+    }
+
+    /* Light mode structural overrides */
+    body.light-mode .ambient-bg { background: #e0e5ec; }
+    body.light-mode .glow-1 { background: #6366f1; opacity: 0.3; }
+    body.light-mode .glow-2 { background: #ec4899; opacity: 0.3; }
+    
+    body.light-mode .titlebar { 
+      border-bottom: 1px solid rgba(255, 255, 255, 0.6); 
+      background: rgba(255, 255, 255, 0.5);
+    }
+    body.light-mode .app-title { color: rgba(0, 0, 0, 0.7); font-weight: 600; }
+    body.light-mode .app-container { border: 1px solid rgba(0, 0, 0, 0.08); }
+    body.light-mode .sidebar { 
+      background: rgba(255, 255, 255, 0.4); 
+      border-right: 1px solid rgba(255, 255, 255, 0.6); 
+      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.8), 2px 0 15px rgba(0, 0, 0, 0.03);
+    }
+    body.light-mode .nav-item { color: rgba(0, 0, 0, 0.65); font-weight: 500; }
+    body.light-mode .nav-item.active { 
+      background: #ffffff; 
+      color: #000; 
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    body.light-mode .nav-item:hover:not(.active) { 
+      background: rgba(255, 255, 255, 0.6); 
+      color: #000; 
+    }
+    body.light-mode input { background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(0, 0, 0, 0.1); color: #000; }
+    body.light-mode .task-card { background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.06); }
+    body.light-mode .task-card:hover { background: rgba(0, 0, 0, 0.07); }
+    body.light-mode .task-card.done span { color: rgba(0, 0, 0, 0.4); }
+    body.light-mode .del-btn { color: rgba(0, 0, 0, 0.4); }
+
+    /* Animated Theme Switch */
+    .theme-switch-wrapper {
+      margin-top: auto;
+      padding: 20px 14px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .theme-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+    }
+    .theme-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.1);
+      transition: .4s;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      border-radius: 50%;
+      z-index: 2;
+    }
+    input:checked + .slider {
+      background-color: rgba(0, 0, 0, 0.1);
+      border-color: rgba(0,0,0,0.1);
+    }
+    input:checked + .slider:before {
+      transform: translateX(30px);
+      background-color: #1a1a24;
+    }
+    .slider .icon {
+      position: absolute;
+      top: 4px;
+      font-size: 14px;
+      z-index: 1;
+    }
+    .slider .sun { right: 7px; }
+    .slider .moon { left: 7px; }
+
+    /* Vibrant Ambient Mesh Behind Glass */
+    .ambient-bg {
+      position: absolute;
+      inset: 0;
+      background: #090d16;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .glow-1, .glow-2 {
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.5;
+    }
+
+    .glow-1 { background: #6366f1; top: -100px; left: -100px; }
+    .glow-2 { background: #a855f7; bottom: -100px; right: -100px; }
+
+    /* Custom Spotify-style Drag Titlebar */
+    .titlebar {
+      height: 38px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      -webkit-app-region: drag; /* Makes titlebar draggable */
+      z-index: 20;
+    }
+
+    .app-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag; /* Allows clicking buttons */
+    }
+
+    .win-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-close { background: #ff5f56; }
+    .btn-min { background: #ffbd2e; }
+    .btn-max { background: #27c93f; }
+
+    /* App Layout */
+    .app-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+
+    /* Glass Sidebar */
+    .sidebar {
+      width: 240px;
+      padding: 24px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(25px) saturate(200%);
+      -webkit-backdrop-filter: blur(25px) saturate(200%);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05), 2px 0 15px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 5;
+    }
+
+    .nav-item {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .nav-item.active {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    
+    .nav-item:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    /* Main Content Area */
+    .main-view {
+      flex: 1;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    h2 { font-size: 1.8rem; font-weight: 700; }
+
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+    }
+
+    input {
+      flex: 1;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus {
+      border-color: rgba(168, 85, 247, 0.5);
+    }
+
+    .add-btn {
+      padding: 0 24px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+      transition: transform 0.1s;
+    }
+
+    .add-btn:active { transform: scale(0.96); }
+
+    /* Task List Items */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .task-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .task-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      transform: translateX(4px);
+    }
+
+    .task-card.done span {
+      text-decoration: line-through;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+    }
+    .del-btn:hover { color: #f43f5e; }
+    
+    /* Liquid Glass Overlays */
+    .glass-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .glass-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .glass-dialog {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(35px) saturate(200%);
+      -webkit-backdrop-filter: blur(35px) saturate(200%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 24px;
+      width: 320px;
+      text-align: center;
+      transform: translateY(20px) scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .glass-overlay.visible .glass-dialog {
+      transform: translateY(0) scale(1);
+    }
+    .glass-dialog h3 { font-weight: 600; margin-bottom: 10px; font-size: 1.2rem; }
+    .glass-dialog p { font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 24px; }
+    .dialog-actions { display: flex; gap: 12px; }
+    
+    .glass-btn {
+      flex: 1; padding: 10px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05); color: #fff; cursor: pointer; transition: all 0.2s; font-weight: 500;
+    }
+    .glass-btn:hover { background: rgba(255, 255, 255, 0.15); }
+    .glass-btn.primary { background: rgba(99, 102, 241, 0.6); border-color: rgba(99, 102, 241, 0.8); }
+    .glass-btn.primary:hover { background: rgba(99, 102, 241, 0.8); }
+
+    /* Light mode overlay overrides */
+    body.light-mode .glass-overlay { background: rgba(255, 255, 255, 0.2); }
+    body.light-mode .glass-dialog {
+      background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 1); color: #000;
+    }
+    body.light-mode .glass-dialog p { color: rgba(0, 0, 0, 0.6); }
+    body.light-mode .glass-btn { color: #000; background: rgba(255,255,255,0.4); border-color: rgba(0,0,0,0.1); }
+    body.light-mode .glass-btn:hover { background: rgba(255,255,255,0.8); }
+    body.light-mode .glass-btn.primary { color: #fff; }
+
+    /* Date Picker Custom UI */
+    #liquidDatePicker {
+      position: absolute; display: none; z-index: 50; padding: 16px; width: 260px;
+      margin-top: 8px; transform: scale(0.95); opacity: 0; transform-origin: top;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    #liquidDatePicker.visible { display: block; opacity: 1; transform: scale(1); }
+    .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .dp-cell { padding: 6px; border-radius: 8px; cursor: pointer; transition: background 0.2s; font-size: 0.85rem; }
+    .dp-cell:hover { background: rgba(255,255,255,0.1); }
+    body.light-mode .dp-cell:hover { background: rgba(0,0,0,0.05); }
+    .dp-cell.empty { pointer-events: none; }
+    .dp-cell.selected { background: #6366f1; color: #fff; }
+    body.light-mode .dp-cell.selected { background: #6366f1; }
+  </style>
+  <script src="GlassSurface.js"></script>
+</head>
+<body>
+  <div id="liquidWarningOverlay" class="glass-overlay">
+    <div class="glass-dialog">
+      <h3>Complete Task</h3>
+      <p>Are you sure you want to mark this task as completed?</p>
+      <div class="dialog-actions">
+        <button class="glass-btn" onclick="cancelComplete()">Cancel</button>
+        <button class="glass-btn primary" onclick="confirmComplete()">Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ambient-bg">
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+  </div>
+
+  <!-- Window Chrome Header -->
+  <glass-surface id="header-glass" width="100%" height="38px" border-radius="0" displace="8" distortion-scale="-120" red-offset="2" green-offset="10" blue-offset="15" brightness="55" opacity="0.85" blur="12" mix-blend-mode="screen" style="-webkit-app-region: drag; z-index: 10;">
+    <div class="titlebar">
+      <span class="app-title">To Do List</span>
+      <div class="window-controls">
+        <button class="win-btn btn-min" onclick="ipc.send('win-minimize')"></button>
+        <button class="win-btn btn-max" onclick="ipc.send('win-maximize')"></button>
+        <button class="win-btn btn-close" onclick="ipc.send('win-close')"></button>
+      </div>
+    </div>
+  </glass-surface>
+
+  <!-- Spotify-style Sidebar + Main Dashboard -->
+  <div class="app-container">
+    <glass-surface id="main-glass" width="100%" height="100%" border-radius="0" displace="10" distortion-scale="-180" red-offset="5" green-offset="15" blue-offset="25" brightness="50" opacity="0.9" blur="15" mix-blend-mode="screen" style="flex: 1;">
+      <div style="display: flex; width: 100%; height: 100%;">
+        <div class="sidebar">
+          <div class="nav-item active" onclick="switchTab('Today', this)"> Today's Tasks</div>
+          <div class="nav-item" onclick="switchTab('Scheduled', this)">Scheduled</div>
+          <div class="nav-item" onclick="switchTab('Important', this)">Important</div>
+          <div class="nav-item" onclick="switchTab('Completed', this)">Completed</div>
+          
+          <div class="theme-switch-wrapper">
+            <label class="theme-switch" for="theme-checkbox">
+              <input type="checkbox" id="theme-checkbox" onchange="toggleTheme(this.checked)" />
+              <div class="slider round">
+                <div class="icon moon">🌙</div>
+                <div class="icon sun">☀️</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="main-view">
+          <h2>My Tasks</h2>
+          <div class="input-wrapper" style="position: relative;">
+            <input type="text" id="taskInput" placeholder="Add something to focus on..." onkeydown="if(event.key === 'Enter') addTask()" />
+            
+            <div id="customDateBtn" class="glass-btn" style="display: none; max-width: 140px; align-items: center; justify-content: space-between; padding: 0 14px;" onclick="toggleDatePicker()">
+              <span id="customDateText" style="font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Select Date</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7; margin-left: 6px; flex-shrink: 0;">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            
+            <div id="liquidDatePicker" class="glass-dialog" style="right: 110px; top: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <button class="glass-btn" style="flex: 0 0 32px; padding: 4px;" onclick="changeMonth(-1)">&lt;</button>
+                <div id="dpMonthYear" style="font-weight: 600; font-size: 0.95rem;"></div>
+                <button class="glass-btn" style="flex: 0 0 32px; padding: 4px;" onclick="changeMonth(1)">&gt;</button>
+              </div>
+              <div class="dp-grid" style="font-size: 0.75rem; opacity: 0.6; margin-bottom: 8px;">
+                <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+              </div>
+              <div id="dpDays" class="dp-grid"></div>
+            </div>
+
+            <button id="starBtn" class="del-btn" style="font-size: 1.4rem; padding: 0 8px; transition: color 0.2s;" onclick="toggleStar()">★</button>
+            <button class="add-btn" onclick="addTask()">Add Task</button>
+          </div>
+
+          <div class="task-list" id="taskList"></div>
+        </div>
+      </div>
+    </glass-surface>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const ipc = ipcRenderer;
+
+    let currentTab = 'Today';
+    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+
+    function saveTasks() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    // Initialize with render
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') {
+        document.getElementById('theme-checkbox').checked = true;
+        toggleTheme(true);
+      }
+      renderTasks();
+      updateInputPlaceholder();
+    });
+
+    function toggleTheme(isLight) {
+      const body = document.body;
+      const glass1 = document.getElementById('header-glass');
+      const glass2 = document.getElementById('main-glass');
+      
+      if (isLight) {
+        body.classList.add('light-mode');
+        if (glass1) { glass1.setAttribute('mix-blend-mode', 'normal'); glass1.setAttribute('opacity', '0.2'); }
+        if (glass2) { glass2.setAttribute('mix-blend-mode', 'normal'); glass2.setAttribute('opacity', '0.2'); }
+        localStorage.setItem('theme', 'light');
+      } else {
+        body.classList.remove('light-mode');
+        if (glass1) { glass1.setAttribute('mix-blend-mode', 'screen'); glass1.setAttribute('opacity', '0.85'); }
+        if (glass2) { glass2.setAttribute('mix-blend-mode', 'screen'); glass2.setAttribute('opacity', '0.9'); }
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    function switchTab(tabName, element) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+      currentTab = tabName;
+      
+      const titles = {
+        'Today': 'My Tasks',
+        'Scheduled': 'Scheduled Tasks',
+        'Important': 'Important Tasks',
+        'Completed': 'Completed Tasks'
+      };
+      document.querySelector('.main-view h2').innerText = titles[tabName];
+      
+      updateInputPlaceholder();
+      renderTasks();
+    }
+    
+    let selectedDate = null;
+    let dpCurrentDate = new Date();
+
+    function updateInputPlaceholder() {
+      const inputWrapper = document.querySelector('.input-wrapper');
+      const input = document.getElementById('taskInput');
+      const dateBtn = document.getElementById('customDateBtn');
+      const starBtn = document.getElementById('starBtn');
+      
+      if (currentTab === 'Completed') {
+        inputWrapper.style.display = 'none';
+      } else {
+        inputWrapper.style.display = 'flex';
+      }
+
+      if (currentTab === 'Scheduled') {
+        input.placeholder = "What needs to be scheduled?";
+        dateBtn.style.display = 'flex';
+        starBtn.style.display = 'none';
+      } else if (currentTab === 'Important') {
+        input.placeholder = "Add an important task...";
+        dateBtn.style.display = 'none';
+        starBtn.style.display = 'none';
+      } else {
+        input.placeholder = "Add something to focus on today...";
+        dateBtn.style.display = 'none';
+        starBtn.style.display = 'block';
+      }
+      
+      document.getElementById('liquidDatePicker').classList.remove('visible');
+    }
+    
+    function toggleDatePicker() {
+      const picker = document.getElementById('liquidDatePicker');
+      if (picker.classList.contains('visible')) {
+        picker.classList.remove('visible');
+      } else {
+        renderCalendar();
+        picker.classList.add('visible');
+      }
+    }
+
+    function changeMonth(dir) {
+      dpCurrentDate.setMonth(dpCurrentDate.getMonth() + dir);
+      renderCalendar();
+    }
+
+    function selectDate(dateStr) {
+      selectedDate = dateStr;
+      document.getElementById('customDateText').innerText = dateStr;
+      document.getElementById('liquidDatePicker').classList.remove('visible');
+    }
+
+    function renderCalendar() {
+      const year = dpCurrentDate.getFullYear();
+      const month = dpCurrentDate.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      document.getElementById('dpMonthYear').innerText = `${monthNames[month]} ${year}`;
+      
+      const daysContainer = document.getElementById('dpDays');
+      daysContainer.innerHTML = '';
+      
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'dp-cell empty';
+        daysContainer.appendChild(emptyCell);
+      }
+      
+      for (let i = 1; i <= daysInMonth; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'dp-cell';
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        cell.innerText = i;
+        if (dateStr === selectedDate) {
+          cell.classList.add('selected');
+        }
+        cell.onclick = () => selectDate(dateStr);
+        daysContainer.appendChild(cell);
+      }
+    }
+    
+    let isStared = false;
+    function toggleStar() {
+      isStared = !isStared;
+      const starBtn = document.getElementById('starBtn');
+      starBtn.style.color = isStared ? '#ffbd2e' : 'var(--star-inactive)';
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const val = input.value.trim();
+      if (!val) return;
+
+      let dateVal = null;
+      const d = new Date();
+      const localToday = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+      if (currentTab === 'Scheduled') {
+        dateVal = selectedDate;
+        if (!dateVal) return alert("Please select a date for scheduled task");
+      } else if (currentTab === 'Today') {
+        dateVal = localToday;
+      }
+
+      tasks.push({
+        id: Date.now(),
+        text: val,
+        done: false,
+        date: dateVal,
+        important: currentTab === 'Important' || isStared,
+        tab: currentTab
+      });
+      
+      input.value = '';
+      if (currentTab === 'Scheduled') {
+        selectedDate = null;
+        document.getElementById('customDateText').innerText = 'Select Date';
+      }
+      if (isStared) toggleStar(); // Reset
+      
+      saveTasks();
+      renderTasks();
+    }
+
+    let pendingTaskIdToComplete = null;
+    function toggleTask(id) {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        if (!task.done) {
+          pendingTaskIdToComplete = id;
+          document.getElementById('liquidWarningOverlay').classList.add('visible');
+        } else {
+          task.done = false;
+          saveTasks();
+          renderTasks();
+        }
+      }
+    }
+
+    function confirmComplete() {
+      if (pendingTaskIdToComplete) {
+        const task = tasks.find(t => t.id === pendingTaskIdToComplete);
+        if (task) {
+          task.done = true;
+          saveTasks();
+          renderTasks();
+        }
+        pendingTaskIdToComplete = null;
+      }
+      document.getElementById('liquidWarningOverlay').classList.remove('visible');
+    }
+
+    function cancelComplete() {
+      pendingTaskIdToComplete = null;
+      document.getElementById('liquidWarningOverlay').classList.remove('visible');
+    }
+
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      renderTasks();
+    }
+    
+    function toggleImportant(id) {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        task.important = !task.important;
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      
+      const d = new Date();
+      const localToday = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      
+      let filtered = [];
+      if (currentTab === 'Completed') {
+        filtered = tasks.filter(t => t.done);
+      } else if (currentTab === 'Important') {
+        filtered = tasks.filter(t => t.important && !t.done);
+      } else if (currentTab === 'Scheduled') {
+        filtered = tasks.filter(t => t.date && !t.done);
+        filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+      } else {
+        filtered = tasks.filter(t => (t.date === localToday || t.tab === 'Today') && !t.done);
+      }
+      
+      if (filtered.length === 0) {
+        list.innerHTML = `<div style="text-align: center; color: rgba(255,255,255,0.3); padding: 20px;">No tasks here yet.</div>`;
+        return;
+      }
+      
+      filtered.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'task-card' + (t.done ? ' done' : '');
+        
+        let displayDate = t.date;
+        if (t.date === localToday) {
+          displayDate = "Today";
+        }
+
+        const dateBadge = t.date ? `<span style="font-size: 0.75rem; background: var(--badge-bg); padding: 2px 6px; border-radius: 4px; margin-right: 8px;">${displayDate}</span>` : '';
+        const starColor = t.important ? '#ffbd2e' : 'var(--star-inactive)';
+        
+        card.innerHTML = `
+          <div style="flex: 1; display: flex; align-items: center; cursor: pointer;" onclick="toggleTask(${t.id})">
+            <div style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid ${t.done ? '#27c93f' : 'var(--border-inactive)'}; margin-right: 12px; background: ${t.done ? '#27c93f' : 'transparent'};"></div>
+            ${dateBadge}
+            <span style="transition: color 0.2s;">${t.text}</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="del-btn" style="color: ${starColor}; font-size: 1.1rem;" onclick="toggleImportant(${t.id})">★</button>
+            <button class="del-btn" onclick="deleteTask(${t.id})">✕</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
