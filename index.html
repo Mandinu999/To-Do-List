@@ -383,7 +383,7 @@
       transition: transform 0.2s, opacity 0.2s;
     }
     #liquidDatePicker { width: 260px; }
-    #liquidTimePicker { width: 320px; } /* Increased width for clock */
+    #liquidTimePicker { width: 320px; }
     #liquidDatePicker.visible, #liquidTimePicker.visible { display: block; opacity: 1; transform: scale(1); }
     
     .tp-input {
@@ -692,7 +692,7 @@
           (t.date === localToday || t.tab === 'Today') && 
           !t.fromTime && 
           !notifiedTasks.includes(t.id) &&
-          (Date.now() - t.id) > 10000 // wait at least 10 seconds after creating
+          (Date.now() - t.id) > 10000
         );
 
         if (unnotifiedTodayTasks.length > 0) {
@@ -718,7 +718,7 @@
           localStorage.setItem('notifiedTasks', JSON.stringify(notifiedTasks));
         }
 
-      }, 10000); // Check every 10 seconds
+      }, 10000);
     });
 
     function toggleTheme(isLight) {
@@ -1268,7 +1268,7 @@
           </div>
         </div>
         `;
-        setTimeout(updatePomodoroDisplay, 0); // Trigger update to set analog clock right away
+        setTimeout(updatePomodoroDisplay, 0);
         return;
       }
       
@@ -1364,7 +1364,7 @@
           const inp = document.getElementById('pomodoroInput');
           if(inp) inp.disabled = false;
           ipc.send('show-notification', { title: 'Focus Timer', body: 'Time is up! Take a break.' });
-          pomodoroTime = 5 * 60; // default 5 min break
+          pomodoroTime = 5 * 60;
           updatePomodoroDisplay();
         }
       }, 1000);

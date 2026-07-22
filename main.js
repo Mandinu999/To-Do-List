@@ -5,10 +5,13 @@ let tray = null;
 let win = null;
 let isQuitting = false;
 
+app.setAppUserModelId("com.liquidtodo.app");
+
 function createWindow() {
   win = new BrowserWindow({
     width: 950,
     height: 650,
+    icon: path.join(__dirname, 'icon.ico'),
     frame: false,
     transparent: true,
     hasShadow: true,
@@ -51,13 +54,9 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // Create tray
-  tray = new Tray(path.join(__dirname, 'icon.png')); // Needs an icon.png, electron will fallback if missing/invalid sometimes, but better to handle. 
-  // We'll just use a native image if no icon is available.
   const { nativeImage } = require('electron');
-  // Create a blank icon if icon.png doesn't exist
-  const icon = nativeImage.createEmpty();
-  tray.setImage(icon);
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'icon.ico'));
+  tray = new Tray(icon);
   
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Show App', click: () => { win.show(); win.focus(); } },
