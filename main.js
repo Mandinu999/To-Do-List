@@ -21,6 +21,19 @@ function createWindow() {
   ipcMain.on('win-minimize', () => win.minimize());
   ipcMain.on('win-maximize', () => win.isMaximized() ? win.unmaximize() : win.maximize());
   ipcMain.on('win-close', () => win.close());
+
+  ipcMain.on('show-notification', (event, { title, body, taskId }) => {
+    const { Notification } = require('electron');
+    if (Notification.isSupported()) {
+      const notif = new Notification({ title, body });
+      notif.on('click', () => {
+        if (win.isMinimized()) win.restore();
+        win.focus();
+        event.reply('notification-clicked', taskId);
+      });
+      notif.show();
+    }
+  });
 }
 
 app.whenReady().then(createWindow);

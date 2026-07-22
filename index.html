@@ -20,6 +20,7 @@
       display: flex;
       flex-direction: column;
       color: #fff;
+      color-scheme: dark;
       --star-inactive: rgba(255,255,255,0.2);
       --border-inactive: rgba(255,255,255,0.3);
       --badge-bg: rgba(255,255,255,0.1);
@@ -28,6 +29,7 @@
 
     body.light-mode {
       color: #1a1a24;
+      color-scheme: light;
       --star-inactive: rgba(0,0,0,0.2);
       --border-inactive: rgba(0,0,0,0.3);
       --badge-bg: rgba(0,0,0,0.1);
@@ -58,7 +60,6 @@
       background: rgba(255, 255, 255, 0.6); 
       color: #000; 
     }
-    body.light-mode input { background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(0, 0, 0, 0.1); color: #000; }
     body.light-mode .task-card { background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.06); }
     body.light-mode .task-card:hover { background: rgba(0, 0, 0, 0.07); }
     body.light-mode .task-card.done span { color: rgba(0, 0, 0, 0.4); }
@@ -181,6 +182,8 @@
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.08);
       position: relative;
+      min-height: 0;
+      min-width: 0;
     }
 
     .sidebar {
@@ -225,6 +228,9 @@
       flex-direction: column;
       gap: 20px;
       overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      min-width: 0;
     }
 
     h2 { font-size: 1.8rem; font-weight: 700; }
@@ -232,11 +238,15 @@
     .input-wrapper {
       display: flex;
       gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    input {
+    #taskInput {
       flex: 1;
-      padding: 14px 18px;
+      height: 47px;
+      min-width: 150px;
+      padding: 10px 18px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
@@ -245,13 +255,16 @@
       outline: none;
       transition: border 0.2s;
     }
-
-    input:focus {
+    
+    #taskInput:focus {
       border-color: rgba(168, 85, 247, 0.5);
     }
+    
+    body.light-mode #taskInput { background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(0, 0, 0, 0.1); color: #000; }
 
     .add-btn {
       padding: 0 24px;
+      height: 47px;
       background: linear-gradient(135deg, #6366f1, #a855f7);
       border: none;
       border-radius: 12px;
@@ -353,14 +366,78 @@
     body.light-mode .glass-dialog p { color: rgba(0, 0, 0, 0.6); }
     body.light-mode .glass-btn { color: #000; background: rgba(255,255,255,0.4); border-color: rgba(0,0,0,0.1); }
     body.light-mode .glass-btn:hover { background: rgba(255,255,255,0.8); }
-    body.light-mode .glass-btn.primary { color: #fff; }
+    body.light-mode .glass-btn.primary { color: #fff; background: rgba(99, 102, 241, 0.8); border-color: rgba(99, 102, 241, 1); }
+    body.light-mode .glass-btn.primary:hover { background: rgba(99, 102, 241, 1); }
 
-    #liquidDatePicker {
-      position: absolute; display: none; z-index: 50; padding: 16px; width: 260px;
+    #liquidDatePicker, #liquidTimePicker {
+      position: absolute; display: none; z-index: 50; padding: 16px;
       margin-top: 8px; transform: scale(0.95); opacity: 0; transform-origin: top;
       transition: transform 0.2s, opacity 0.2s;
     }
-    #liquidDatePicker.visible { display: block; opacity: 1; transform: scale(1); }
+    #liquidDatePicker { width: 260px; }
+    #liquidTimePicker { width: 320px; } /* Increased width for clock */
+    #liquidDatePicker.visible, #liquidTimePicker.visible { display: block; opacity: 1; transform: scale(1); }
+    
+    .tp-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      outline: none;
+    }
+    .tp-input:focus {
+      border-color: rgba(168, 85, 247, 0.5);
+    }
+    body.light-mode .tp-input {
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .analog-clock {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+      margin: 0 auto 16px;
+    }
+    body.light-mode .analog-clock {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(0, 0, 0, 0.1);
+    }
+    .clock-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 8px; height: 8px;
+      background: #a855f7;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+    }
+    .clock-hand {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom center;
+      background: #fff;
+      border-radius: 4px;
+      z-index: 2;
+    }
+    body.light-mode .clock-hand { background: #1a1a24; }
+    .hand-hour { width: 4px; height: 25px; margin-left: -2px; }
+    .hand-minute { width: 3px; height: 35px; margin-left: -1.5px; opacity: 0.8; }
+    .hand-second { width: 2px; height: 40px; margin-left: -1px; background: #f43f5e; z-index: 3; }
+    body.light-mode .hand-second { background: #f43f5e; }
+    .clock-mark {
+      position: absolute;
+      width: 2px; height: 6px;
+      background: rgba(255,255,255,0.3);
+      left: 50%; margin-left: -1px;
+      top: 4px;
+      transform-origin: 50% 46px;
+    }
+    body.light-mode .clock-mark { background: rgba(0,0,0,0.2); }
+    
     .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
     .dp-cell { padding: 6px; border-radius: 8px; cursor: pointer; transition: background 0.2s; font-size: 0.85rem; }
     .dp-cell:hover { background: rgba(255,255,255,0.1); }
@@ -368,6 +445,16 @@
     .dp-cell.empty { pointer-events: none; }
     .dp-cell.selected { background: #6366f1; color: #fff; }
     body.light-mode .dp-cell.selected { background: #6366f1; }
+    .dp-cell.today-highlight:not(.selected) { border: 1px solid rgba(99, 102, 241, 0.6); color: #818cf8; font-weight: bold; }
+    body.light-mode .dp-cell.today-highlight:not(.selected) { color: #6366f1; }
+    
+    .weekly-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; align-items: start; padding-bottom: 8px; min-width: 0; }
+    .weekly-col { display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 8px; border: 1px solid rgba(255,255,255,0.05); min-width: 0; }
+    .weekly-col h4 { text-align: center; font-size: 0.9rem; margin-bottom: 8px; color: rgba(255,255,255,0.6); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+    body.light-mode .weekly-col { background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05); }
+    body.light-mode .weekly-col h4 { color: rgba(0,0,0,0.6); border-bottom-color: rgba(0,0,0,0.1); }
+    
+    /* Removed custom scrollbar for weekly-grid as we no longer use side scrolling */
   </style>
   <script src="GlassSurface.js"></script>
 </head>
@@ -400,11 +487,13 @@
   </glass-surface>
 
   <div class="app-container">
-    <glass-surface id="main-glass" width="100%" height="100%" border-radius="0" displace="10" distortion-scale="-180" red-offset="5" green-offset="15" blue-offset="25" brightness="50" opacity="0.9" blur="15" mix-blend-mode="screen" style="flex: 1;">
-      <div style="display: flex; width: 100%; height: 100%;">
+    <glass-surface id="main-glass" width="100%" height="100%" border-radius="0" displace="10" distortion-scale="-180" red-offset="5" green-offset="15" blue-offset="25" brightness="50" opacity="0.9" blur="15" mix-blend-mode="screen" style="flex: 1; display: flex; min-height: 0; min-width: 0;">
+      <div style="display: flex; width: 100%; height: 100%; min-height: 0; min-width: 0; overflow: hidden;">
         <div class="sidebar">
           <div class="nav-item active" onclick="switchTab('Today', this)"> Today's Tasks</div>
           <div class="nav-item" onclick="switchTab('Scheduled', this)">Scheduled</div>
+          <div class="nav-item" onclick="switchTab('Timetable', this)">Timetable</div>
+          <div class="nav-item" onclick="switchTab('Weekly', this)">Current Week</div>
           <div class="nav-item" onclick="switchTab('Important', this)">Important</div>
           <div class="nav-item" onclick="switchTab('Completed', this)">Completed</div>
           
@@ -424,7 +513,13 @@
           <div class="input-wrapper" style="position: relative;">
             <input type="text" id="taskInput" placeholder="Add something to focus on..." onkeydown="if(event.key === 'Enter') addTask()" />
             
-            <div id="customDateBtn" class="glass-btn" style="display: none; max-width: 140px; align-items: center; justify-content: space-between; padding: 0 14px;" onclick="toggleDatePicker()">
+            <div id="timeInputs" style="display: none; align-items: center; gap: 8px;">
+              <div id="fromTimeBtn" class="glass-btn" style="padding: 0 16px; display: flex; align-items: center; justify-content: center; height: 47px; width: 90px; cursor: pointer; font-size: 0.95rem; font-weight: 500;" onclick="openTimePicker('from')">00:00</div>
+              <span style="opacity: 0.7;">to</span>
+              <div id="toTimeBtn" class="glass-btn" style="padding: 0 16px; display: flex; align-items: center; justify-content: center; height: 47px; width: 90px; cursor: pointer; font-size: 0.95rem; font-weight: 500;" onclick="openTimePicker('to')">00:00</div>
+            </div>
+
+            <div id="customDateBtn" class="glass-btn" style="display: none; max-width: 140px; align-items: center; justify-content: space-between; padding: 0 14px; height: 47px;" onclick="toggleDatePicker()">
               <span id="customDateText" style="font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Select Date</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7; margin-left: 6px; flex-shrink: 0;">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -446,6 +541,43 @@
               <div id="dpDays" class="dp-grid"></div>
             </div>
 
+            <div id="liquidTimePicker" class="glass-dialog" style="right: 110px; top: 100%;">
+              <div style="font-weight: 600; margin-bottom: 12px;">Current Time & Select</div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                <div class="analog-clock" id="analogClock" style="margin: 0; flex-shrink: 0;">
+                  <div class="clock-center"></div>
+                  <div class="clock-hand hand-hour" id="clockHour"></div>
+                  <div class="clock-hand hand-minute" id="clockMinute"></div>
+                  <div class="clock-hand hand-second" id="clockSecond"></div>
+                  <!-- Marks -->
+                  <div class="clock-mark" style="transform: rotate(0deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(30deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(60deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(90deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(120deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(150deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(180deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(210deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(240deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(270deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(300deg)"></div>
+                  <div class="clock-mark" style="transform: rotate(330deg)"></div>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+                  <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+                    <input type="number" id="tp-hour" class="tp-input" min="0" max="23" style="flex: unset; width: 50px; text-align: center; font-size: 1.1rem; padding: 6px; border-radius: 8px; color: inherit;" onchange="padTime(this)" onkeyup="padTime(this)">
+                    <span style="font-size: 1.1rem; font-weight: bold;">:</span>
+                    <input type="number" id="tp-minute" class="tp-input" min="0" max="59" style="flex: unset; width: 50px; text-align: center; font-size: 1.1rem; padding: 6px; border-radius: 8px; color: inherit;" onchange="padTime(this)" onkeyup="padTime(this)">
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button class="glass-btn" onclick="closeTimePicker(false)" style="padding: 6px 0;">Cancel</button>
+                    <button class="glass-btn primary" onclick="closeTimePicker(true)" style="padding: 6px 0;">Set</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <button id="starBtn" class="del-btn" style="font-size: 1.4rem; padding: 0 8px; transition: color 0.2s;" onclick="toggleStar()">★</button>
             <button class="add-btn" onclick="addTask()">Add Task</button>
           </div>
@@ -462,6 +594,7 @@
 
     let currentTab = 'Today';
     let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    let notifiedTasks = JSON.parse(localStorage.getItem('notifiedTasks') || '[]');
 
     function saveTasks() {
       localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -473,8 +606,57 @@
         document.getElementById('theme-checkbox').checked = true;
         toggleTheme(true);
       }
+      
       renderTasks();
       updateInputPlaceholder();
+
+      ipc.on('notification-clicked', (event, taskId) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+          task.done = true;
+          saveTasks();
+          renderTasks();
+        }
+      });
+
+      setInterval(() => {
+        const d = new Date();
+        const localToday = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        const currentTimeStr = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        
+        // 1. Untimed today tasks
+        const unnotifiedTodayTasks = tasks.filter(t => 
+          !t.done && 
+          (t.date === localToday || t.tab === 'Today') && 
+          !t.fromTime && 
+          !notifiedTasks.includes(t.id) &&
+          (Date.now() - t.id) > 10000 // wait at least 10 seconds after creating
+        );
+
+        if (unnotifiedTodayTasks.length > 0) {
+          const task = unnotifiedTodayTasks[0];
+          ipc.send('show-notification', { title: 'Did u do this?', body: task.text, taskId: task.id });
+          notifiedTasks.push(task.id);
+          localStorage.setItem('notifiedTasks', JSON.stringify(notifiedTasks));
+          return;
+        }
+
+        // 2. Timed timetable tasks that are due right now
+        const dueTimedTasks = tasks.filter(t => 
+          !t.done && 
+          t.date === localToday && 
+          t.fromTime === currentTimeStr && 
+          !notifiedTasks.includes(t.id + '_timed')
+        );
+
+        if (dueTimedTasks.length > 0) {
+          const task = dueTimedTasks[0];
+          ipc.send('show-notification', { title: 'Time for this task!', body: task.text, taskId: task.id });
+          notifiedTasks.push(task.id + '_timed');
+          localStorage.setItem('notifiedTasks', JSON.stringify(notifiedTasks));
+        }
+
+      }, 10000); // Check every 10 seconds
     });
 
     function toggleTheme(isLight) {
@@ -503,6 +685,8 @@
       const titles = {
         'Today': 'My Tasks',
         'Scheduled': 'Scheduled Tasks',
+        'Timetable': 'Timetable',
+        'Weekly': 'Current Week Tasks',
         'Important': 'Important Tasks',
         'Completed': 'Completed Tasks'
       };
@@ -520,6 +704,7 @@
       const input = document.getElementById('taskInput');
       const dateBtn = document.getElementById('customDateBtn');
       const starBtn = document.getElementById('starBtn');
+      const timeInputs = document.getElementById('timeInputs');
       
       if (currentTab === 'Completed') {
         inputWrapper.style.display = 'none';
@@ -531,26 +716,134 @@
         input.placeholder = "What needs to be scheduled?";
         dateBtn.style.display = 'flex';
         starBtn.style.display = 'none';
+        if (timeInputs) timeInputs.style.display = 'none';
       } else if (currentTab === 'Important') {
         input.placeholder = "Add an important task...";
         dateBtn.style.display = 'none';
         starBtn.style.display = 'none';
+        if (timeInputs) timeInputs.style.display = 'none';
+      } else if (currentTab === 'Timetable' || currentTab === 'Weekly') {
+        input.placeholder = currentTab === 'Weekly' ? "Add a task for this week..." : "Add a timetabled task...";
+        dateBtn.style.display = 'flex';
+        starBtn.style.display = 'none';
+        if (timeInputs) {
+            timeInputs.style.display = 'flex';
+            const d = new Date();
+            const fromT = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            d.setHours(d.getHours() + 1);
+            const toT = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            if (document.getElementById('fromTimeBtn').innerText === '00:00') document.getElementById('fromTimeBtn').innerText = fromT;
+            if (document.getElementById('toTimeBtn').innerText === '00:00') document.getElementById('toTimeBtn').innerText = toT;
+        }
       } else {
         input.placeholder = "Add something to focus on today...";
         dateBtn.style.display = 'none';
         starBtn.style.display = 'block';
+        if (timeInputs) timeInputs.style.display = 'none';
       }
       
       document.getElementById('liquidDatePicker').classList.remove('visible');
     }
     
+    let timePickerTarget = null;
+
+    function updateAnalogClock() {
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      const s = now.getSeconds();
+
+      const hDeg = (h % 12) * 30 + (m * 0.5);
+      const mDeg = m * 6 + (s * 0.1);
+      const sDeg = s * 6;
+
+      const clockHour = document.getElementById('clockHour');
+      const clockMinute = document.getElementById('clockMinute');
+      const clockSecond = document.getElementById('clockSecond');
+      
+      if (clockHour) clockHour.style.transform = `rotate(${hDeg}deg)`;
+      if (clockMinute) clockMinute.style.transform = `rotate(${mDeg}deg)`;
+      if (clockSecond) clockSecond.style.transform = `rotate(${sDeg}deg)`;
+    }
+
+    setInterval(updateAnalogClock, 1000);
+    window.addEventListener('DOMContentLoaded', updateAnalogClock);
+
+    function openTimePicker(target) {
+      timePickerTarget = target;
+      const picker = document.getElementById('liquidTimePicker');
+      picker.style.display = 'block';
+      setTimeout(() => picker.classList.add('visible'), 10);
+      
+      const btn = document.getElementById(target + 'TimeBtn');
+      const wrapper = document.querySelector('.input-wrapper');
+      const rect = btn.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
+      
+      picker.style.right = 'auto'; // Clear inline style
+      picker.style.left = Math.max(0, rect.left - wrapperRect.left) + 'px';
+      picker.style.top = (rect.bottom - wrapperRect.top + 5) + 'px';
+      
+      // If the picker would overflow the wrapper/window, adjust it
+      if (rect.left - wrapperRect.left + 240 > wrapperRect.width) {
+        picker.style.left = Math.max(0, wrapperRect.width - 240) + 'px';
+      }
+      const parts = btn.innerText.split(':');
+      if (parts.length === 2) {
+        document.getElementById('tp-hour').value = parts[0];
+        document.getElementById('tp-minute').value = parts[1];
+      }
+    }
+
+    function padTime(el) {
+      if (el.value === '') return;
+      let val = parseInt(el.value);
+      if (isNaN(val)) val = 0;
+      if (el.id === 'tp-hour' && val > 23) val = 23;
+      if (el.id === 'tp-minute' && val > 59) val = 59;
+      if (val < 0) val = 0;
+      el.value = String(val).padStart(2, '0');
+    }
+
+    function closeTimePicker(save) {
+      const picker = document.getElementById('liquidTimePicker');
+      picker.classList.remove('visible');
+      setTimeout(() => {
+        picker.style.display = 'none';
+      }, 200);
+      
+      if (save && timePickerTarget) {
+        let h = document.getElementById('tp-hour').value || '00';
+        let m = document.getElementById('tp-minute').value || '00';
+        h = h.padStart(2, '0');
+        m = m.padStart(2, '0');
+        document.getElementById(timePickerTarget + 'TimeBtn').innerText = `${h}:${m}`;
+      }
+    }
+
     function toggleDatePicker() {
-      const picker = document.getElementById('liquidDatePicker');
-      if (picker.classList.contains('visible')) {
-        picker.classList.remove('visible');
+      const dp = document.getElementById('liquidDatePicker');
+      if (dp.classList.contains('visible')) {
+        dp.classList.remove('visible');
+        setTimeout(() => dp.style.display = 'none', 200);
       } else {
+        const btn = document.getElementById('customDateBtn');
+        const wrapper = document.querySelector('.input-wrapper');
+        const rect = btn.getBoundingClientRect();
+        const wrapperRect = wrapper.getBoundingClientRect();
+        
+        dp.style.right = 'auto'; // Clear inline style
+        dp.style.left = Math.max(0, rect.left - wrapperRect.left) + 'px';
+        dp.style.top = (rect.bottom - wrapperRect.top + 5) + 'px';
+        
+        // Adjust if it overflows right side
+        if (rect.left - wrapperRect.left + 280 > wrapperRect.width) {
+          dp.style.left = Math.max(0, wrapperRect.width - 280) + 'px';
+        }
+        
+        dp.style.display = 'block';
+        setTimeout(() => dp.classList.add('visible'), 10);
         renderCalendar();
-        picker.classList.add('visible');
       }
     }
 
@@ -583,11 +876,17 @@
         daysContainer.appendChild(emptyCell);
       }
       
+      const today = new Date();
+      const localTodayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      
       for (let i = 1; i <= daysInMonth; i++) {
         const cell = document.createElement('div');
         cell.className = 'dp-cell';
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         cell.innerText = i;
+        if (dateStr === localTodayStr) {
+          cell.classList.add('today-highlight');
+        }
         if (dateStr === selectedDate) {
           cell.classList.add('selected');
         }
@@ -605,6 +904,8 @@
 
     function addTask() {
       const input = document.getElementById('taskInput');
+      const fromTimeBtn = document.getElementById('fromTimeBtn');
+      const toTimeBtn = document.getElementById('toTimeBtn');
       const val = input.value.trim();
       if (!val) return;
 
@@ -612,9 +913,15 @@
       const d = new Date();
       const localToday = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 
-      if (currentTab === 'Scheduled') {
+      if (currentTab === 'Scheduled' || currentTab === 'Timetable' || currentTab === 'Weekly') {
         dateVal = selectedDate;
-        if (!dateVal) return alert("Please select a date for scheduled task");
+        if (!dateVal) {
+          if (currentTab === 'Timetable' || currentTab === 'Weekly') {
+            dateVal = localToday;
+          } else {
+            return alert("Please select a date for scheduled task");
+          }
+        }
       } else if (currentTab === 'Today') {
         dateVal = localToday;
       }
@@ -625,11 +932,13 @@
         done: false,
         date: dateVal,
         important: currentTab === 'Important' || isStared,
-        tab: currentTab
+        tab: currentTab,
+        fromTime: (currentTab === 'Timetable' || currentTab === 'Weekly') && fromTimeBtn ? fromTimeBtn.innerText : null,
+        toTime: (currentTab === 'Timetable' || currentTab === 'Weekly') && toTimeBtn ? toTimeBtn.innerText : null
       });
       
       input.value = '';
-      if (currentTab === 'Scheduled') {
+      if (currentTab === 'Scheduled' || currentTab === 'Timetable' || currentTab === 'Weekly') {
         selectedDate = null;
         document.getElementById('customDateText').innerText = 'Select Date';
       }
@@ -687,12 +996,113 @@
       }
     }
 
+    function createTaskCard(t, localToday) {
+      const card = document.createElement('div');
+      card.className = 'task-card' + (t.done ? ' done' : '');
+      
+      let displayDate = t.date;
+      if (t.date === localToday) {
+        displayDate = "Today";
+      }
+
+      const dateBadge = t.date ? `<span style="font-size: 0.75rem; background: var(--badge-bg); padding: 2px 6px; border-radius: 4px; margin-right: 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayDate}</span>` : '';
+      const timeBadge = (t.fromTime && t.toTime) ? `<span style="font-size: 0.75rem; background: rgba(99,102,241,0.2); color: #a855f7; padding: 2px 6px; border-radius: 4px; margin-right: 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.fromTime} - ${t.toTime}</span>` : '';
+      const starColor = t.important ? '#ffbd2e' : 'var(--star-inactive)';
+      
+      card.innerHTML = `
+        <div style="flex: 1; display: flex; align-items: center; cursor: pointer; min-width: 0;" onclick="toggleTask(${t.id})">
+          <div style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 50%; border: 2px solid ${t.done ? '#27c93f' : 'var(--border-inactive)'}; margin-right: 12px; background: ${t.done ? '#27c93f' : 'transparent'};"></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0;">
+            ${(t.date || (t.fromTime && t.toTime)) ? `<div style="display: flex; flex-wrap: wrap;">${dateBadge}${timeBadge}</div>` : ''}
+            <span style="transition: color 0.2s; word-break: break-word; line-height: 1.3;">${t.text}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-shrink: 0; margin-left: 8px;">
+          <button class="del-btn" style="color: ${starColor}; font-size: 1.1rem;" onclick="toggleImportant(${t.id})">★</button>
+          <button class="del-btn" onclick="deleteTask(${t.id})">✕</button>
+        </div>
+      `;
+      return card;
+    }
+
     function renderTasks() {
       const list = document.getElementById('taskList');
       list.innerHTML = '';
       
       const d = new Date();
       const localToday = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      
+      if (currentTab === 'Timetable') {
+        const todayTasks = tasks.filter(t => t.tab === 'Timetable' && t.date === localToday && !t.done);
+        const upcomingTasks = tasks.filter(t => t.tab === 'Timetable' && t.date > localToday && !t.done);
+        
+        todayTasks.sort((a,b) => (a.fromTime || '').localeCompare(b.fromTime || ''));
+        upcomingTasks.sort((a,b) => (a.date + (a.fromTime || '')).localeCompare(b.date + (b.fromTime || '')));
+
+        list.innerHTML = '';
+        list.insertAdjacentHTML('beforeend', `<h3 style="margin-top: 10px; font-size: 1.1rem; opacity: 0.8; padding-left: 5px;">Today Tasks</h3>`);
+        if (todayTasks.length === 0) list.insertAdjacentHTML('beforeend', `<div style="color: rgba(255,255,255,0.3); padding: 10px;">No timetable tasks today.</div>`);
+        todayTasks.forEach(t => list.appendChild(createTaskCard(t, localToday)));
+
+        list.insertAdjacentHTML('beforeend', `<h3 style="margin-top: 20px; font-size: 1.1rem; opacity: 0.8; padding-left: 5px;">Upcoming Tasks</h3>`);
+        if (upcomingTasks.length === 0) list.insertAdjacentHTML('beforeend', `<div style="color: rgba(255,255,255,0.3); padding: 10px;">No upcoming timetable tasks.</div>`);
+        upcomingTasks.forEach(t => list.appendChild(createTaskCard(t, localToday)));
+        return;
+      }
+
+      if (currentTab === 'Weekly') {
+        const currentDay = d.getDay();
+        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(d);
+        monday.setDate(d.getDate() + diffToMonday);
+        
+        const formatYMD = (dateObj) => dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0');
+        
+        const days = [];
+        for (let i = 0; i < 5; i++) {
+          const dayDate = new Date(monday);
+          dayDate.setDate(monday.getDate() + i);
+          days.push(formatYMD(dayDate));
+        }
+        
+        list.innerHTML = `<div class="weekly-grid" id="weeklyGrid"></div>`;
+        const grid = document.getElementById('weeklyGrid');
+        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        const isLightMode = document.body.classList.contains('light-mode');
+        const emptyTextColor = isLightMode ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.3)';
+        
+        days.forEach((dateStr, i) => {
+          const col = document.createElement('div');
+          col.className = 'weekly-col';
+          col.innerHTML = `<h4>${dayNames[i]}</h4>`;
+          
+          const dayTasks = tasks.filter(t => t.date === dateStr && !t.done);
+          dayTasks.sort((a,b) => (a.fromTime || '').localeCompare(b.fromTime || ''));
+          
+          if (dayTasks.length === 0) {
+            col.insertAdjacentHTML('beforeend', `<div style="font-size: 0.8rem; color: ${emptyTextColor}; text-align: center; padding: 10px 0;">No tasks</div>`);
+          } else {
+            dayTasks.forEach(t => {
+              const card = createTaskCard(t, localToday);
+              card.style.flexDirection = 'column';
+              card.style.alignItems = 'stretch';
+              card.style.gap = '8px';
+              card.style.padding = '10px';
+              card.style.fontSize = '0.9rem';
+              card.style.overflow = 'hidden';
+              card.style.boxSizing = 'border-box';
+              card.firstElementChild.style.width = '100%';
+              const actions = card.lastElementChild;
+              actions.style.alignSelf = 'flex-end';
+              actions.style.margin = '0';
+              col.appendChild(card);
+            });
+          }
+          grid.appendChild(col);
+        });
+        
+        return;
+      }
       
       let filtered = [];
       if (currentTab === 'Completed') {
@@ -712,29 +1122,7 @@
       }
       
       filtered.forEach(t => {
-        const card = document.createElement('div');
-        card.className = 'task-card' + (t.done ? ' done' : '');
-        
-        let displayDate = t.date;
-        if (t.date === localToday) {
-          displayDate = "Today";
-        }
-
-        const dateBadge = t.date ? `<span style="font-size: 0.75rem; background: var(--badge-bg); padding: 2px 6px; border-radius: 4px; margin-right: 8px;">${displayDate}</span>` : '';
-        const starColor = t.important ? '#ffbd2e' : 'var(--star-inactive)';
-        
-        card.innerHTML = `
-          <div style="flex: 1; display: flex; align-items: center; cursor: pointer;" onclick="toggleTask(${t.id})">
-            <div style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid ${t.done ? '#27c93f' : 'var(--border-inactive)'}; margin-right: 12px; background: ${t.done ? '#27c93f' : 'transparent'};"></div>
-            ${dateBadge}
-            <span style="transition: color 0.2s;">${t.text}</span>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="del-btn" style="color: ${starColor}; font-size: 1.1rem;" onclick="toggleImportant(${t.id})">★</button>
-            <button class="del-btn" onclick="deleteTask(${t.id})">✕</button>
-          </div>
-        `;
-        list.appendChild(card);
+        list.appendChild(createTaskCard(t, localToday));
       });
     }
   </script>
