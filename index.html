@@ -299,6 +299,14 @@
       transform: translateX(4px);
     }
 
+    .task-card.over {
+      border: 1px dashed rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    body.light-mode .task-card.over {
+      border: 1px dashed rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.02);
+    }
     .task-card.done span {
       text-decoration: line-through;
       color: rgba(255, 255, 255, 0.4);
@@ -496,6 +504,8 @@
           <div class="nav-item" onclick="switchTab('Weekly', this)">Current Week</div>
           <div class="nav-item" onclick="switchTab('Important', this)">Important</div>
           <div class="nav-item" onclick="switchTab('Completed', this)">Completed</div>
+          <div class="nav-item" onclick="switchTab('Pomodoro', this)">Focus Timer</div>
+          <div class="nav-item" onclick="switchTab('Stats', this)">Analytics</div>
           
           <div class="theme-switch-wrapper">
             <label class="theme-switch" for="theme-checkbox">
@@ -513,6 +523,20 @@
           <div class="input-wrapper" style="position: relative;">
             <input type="text" id="taskInput" placeholder="Add something to focus on..." onkeydown="if(event.key === 'Enter') addTask()" />
             
+            <select id="taskCategory" class="glass-btn" style="height: 47px; padding: 0 14px; appearance: none; outline: none; display: flex; cursor: pointer; color: inherit; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); font-size: 0.9rem;">
+              <option style="background: var(--bg);" value="None">No Category</option>
+              <option style="background: var(--bg);" value="Work">Work</option>
+              <option style="background: var(--bg);" value="Personal">Personal</option>
+              <option style="background: var(--bg);" value="Urgent">Urgent</option>
+            </select>
+            
+            <select id="taskRecur" class="glass-btn" style="height: 47px; padding: 0 14px; appearance: none; outline: none; display: flex; cursor: pointer; color: inherit; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); font-size: 0.9rem;">
+              <option style="background: var(--bg);" value="none">No Repeat</option>
+              <option style="background: var(--bg);" value="daily">Daily</option>
+              <option value="weekly" style="background: var(--bg);">Weekly</option>
+              <option value="monthly" style="background: var(--bg);">Monthly</option>
+            </select>
+
             <div id="timeInputs" style="display: none; align-items: center; gap: 8px;">
               <div id="fromTimeBtn" class="glass-btn" style="padding: 0 16px; display: flex; align-items: center; justify-content: center; height: 47px; width: 90px; cursor: pointer; font-size: 0.95rem; font-weight: 500;" onclick="openTimePicker('from')">00:00</div>
               <span style="opacity: 0.7;">to</span>
@@ -595,6 +619,44 @@
     let currentTab = 'Today';
     let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
     let notifiedTasks = JSON.parse(localStorage.getItem('notifiedTasks') || '[]');
+    let categories = JSON.parse(localStorage.getItem('categories') || '["Work", "Personal", "Urgent"]');
+    
+    // Check and create recurring tasks if needed
+    function processRecurringTasks() {
+      const today = new Date();
+      const localToday = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      
+      let newTasks = [];
+      let updated = false;
+
+      tasks.forEach(t => {
+        if (t.recurring && t.date && t.date < localToday && !t.recurringProcessedUntil || (t.recurringProcessedUntil && t.recurringProcessedUntil < localToday)) {
+          let nextDate = new Date(t.date);
+          while (true) {
+            if (t.recurring === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+            else if (t.recurring === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+            else if (t.recurring === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+            
+            const nextDateStr = nextDate.getFullYear() + '-' + String(nextDate.getMonth() + 1).padStart(2, '0') + '-' + String(nextDate.getDate()).padStart(2, '0');
+            
+            if (nextDateStr <= localToday) {
+              newTasks.push({...t, id: Date.now() + Math.random(), date: nextDateStr, done: false, recurringProcessedUntil: null});
+              t.recurringProcessedUntil = nextDateStr;
+              updated = true;
+            } else {
+              break;
+            }
+          }
+        }
+      });
+      
+      if (updated) {
+        tasks.push(...newTasks);
+        saveTasks();
+      }
+    }
+    
+    processRecurringTasks();
 
     function saveTasks() {
       localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -706,7 +768,7 @@
       const starBtn = document.getElementById('starBtn');
       const timeInputs = document.getElementById('timeInputs');
       
-      if (currentTab === 'Completed') {
+      if (currentTab === 'Completed' || currentTab === 'Pomodoro' || currentTab === 'Stats') {
         inputWrapper.style.display = 'none';
       } else {
         inputWrapper.style.display = 'flex';
@@ -906,6 +968,9 @@
       const input = document.getElementById('taskInput');
       const fromTimeBtn = document.getElementById('fromTimeBtn');
       const toTimeBtn = document.getElementById('toTimeBtn');
+      const categorySelect = document.getElementById('taskCategory');
+      const recurSelect = document.getElementById('taskRecur');
+      
       const val = input.value.trim();
       if (!val) return;
 
@@ -933,6 +998,9 @@
         date: dateVal,
         important: currentTab === 'Important' || isStared,
         tab: currentTab,
+        category: categorySelect ? categorySelect.value : 'None',
+        recurring: recurSelect && recurSelect.value !== 'none' ? recurSelect.value : null,
+        subtasks: [],
         fromTime: (currentTab === 'Timetable' || currentTab === 'Weekly') && fromTimeBtn ? fromTimeBtn.innerText : null,
         toTime: (currentTab === 'Timetable' || currentTab === 'Weekly') && toTimeBtn ? toTimeBtn.innerText : null
       });
@@ -996,9 +1064,46 @@
       }
     }
 
+    function addSubtask(taskId, text) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        if (!task.subtasks) task.subtasks = [];
+        task.subtasks.push({ text, done: false });
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    function toggleSubtask(taskId, subtaskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.subtasks && task.subtasks[subtaskId]) {
+        task.subtasks[subtaskId].done = !task.subtasks[subtaskId].done;
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    function deleteSubtask(taskId, subtaskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.subtasks) {
+        task.subtasks.splice(subtaskId, 1);
+        saveTasks();
+        renderTasks();
+      }
+    }
+
     function createTaskCard(t, localToday) {
       const card = document.createElement('div');
       card.className = 'task-card' + (t.done ? ' done' : '');
+      card.draggable = true;
+      card.dataset.id = t.id;
+      
+      card.addEventListener('dragstart', handleDragStart);
+      card.addEventListener('dragover', handleDragOver);
+      card.addEventListener('drop', handleDrop);
+      card.addEventListener('dragenter', handleDragEnter);
+      card.addEventListener('dragleave', handleDragLeave);
+      card.addEventListener('dragend', handleDragEnd);
       
       let displayDate = t.date;
       if (t.date === localToday) {
@@ -1006,15 +1111,27 @@
       }
 
       const dateBadge = t.date ? `<span style="font-size: 0.75rem; background: var(--badge-bg); padding: 2px 6px; border-radius: 4px; margin-right: 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayDate}</span>` : '';
-      const timeBadge = (t.fromTime && t.toTime) ? `<span style="font-size: 0.75rem; background: rgba(99,102,241,0.2); color: #a855f7; padding: 2px 6px; border-radius: 4px; margin-right: 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.fromTime} - ${t.toTime}</span>` : '';
+      const timeBadge = (t.fromTime && t.toTime) ? `<span style="font-size: 0.75rem; background: rgba(99,102,241,0.2); color: #818cf8; padding: 2px 6px; border-radius: 4px; margin-right: 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.fromTime} - ${t.toTime}</span>` : '';
+      const categoryBadge = (t.category && t.category !== 'None') ? `<span style="font-size: 0.75rem; background: rgba(244,63,94,0.2); color: #fb7185; padding: 2px 6px; border-radius: 4px; margin-right: 6px; display: inline-block;">${t.category}</span>` : '';
+      const recurBadge = (t.recurring && t.recurring !== 'none') ? `<span style="font-size: 0.75rem; background: rgba(34,197,94,0.2); color: #4ade80; padding: 2px 6px; border-radius: 4px; margin-right: 6px; display: inline-block;">↻ ${t.recurring}</span>` : '';
       const starColor = t.important ? '#ffbd2e' : 'var(--star-inactive)';
       
       card.innerHTML = `
-        <div style="flex: 1; display: flex; align-items: center; cursor: pointer; min-width: 0;" onclick="toggleTask(${t.id})">
-          <div style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 50%; border: 2px solid ${t.done ? '#27c93f' : 'var(--border-inactive)'}; margin-right: 12px; background: ${t.done ? '#27c93f' : 'transparent'};"></div>
+        <div style="flex: 1; display: flex; align-items: flex-start; cursor: pointer; min-width: 0; padding-top: 2px;" onclick="toggleTask(${t.id})">
+          <div style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 50%; border: 2px solid ${t.done ? '#27c93f' : 'var(--border-inactive)'}; margin-right: 12px; margin-top: 2px; background: ${t.done ? '#27c93f' : 'transparent'};"></div>
           <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0;">
-            ${(t.date || (t.fromTime && t.toTime)) ? `<div style="display: flex; flex-wrap: wrap;">${dateBadge}${timeBadge}</div>` : ''}
+            ${(t.date || (t.fromTime && t.toTime) || (t.category && t.category !== 'None') || (t.recurring && t.recurring !== 'none')) ? `<div style="display: flex; flex-wrap: wrap; margin-bottom: 2px;">${dateBadge}${timeBadge}${categoryBadge}${recurBadge}</div>` : ''}
             <span style="transition: color 0.2s; word-break: break-word; line-height: 1.3;">${t.text}</span>
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;" onclick="event.stopPropagation()">
+              ${(t.subtasks || []).map((st, idx) => `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="checkbox" style="accent-color: #6366f1;" ${st.done ? 'checked' : ''} onchange="toggleSubtask(${t.id}, ${idx})">
+                  <span style="font-size: 0.85rem; text-decoration: ${st.done ? 'line-through' : 'none'}; opacity: ${st.done ? 0.5 : 0.8};">${st.text}</span>
+                  <button class="del-btn" style="margin-left: auto; font-size: 0.9rem; padding: 0;" onclick="deleteSubtask(${t.id}, ${idx})">✕</button>
+                </div>
+              `).join('')}
+              <input type="text" placeholder="+ Add subtask" style="background: transparent; border: none; outline: none; color: inherit; font-size: 0.85rem; opacity: 0.7; margin-top: 2px; font-family: inherit;" onkeydown="if(event.key === 'Enter' && this.value.trim()){ addSubtask(${t.id}, this.value.trim()); this.value=''; }">
+            </div>
           </div>
         </div>
         <div style="display: flex; gap: 8px; flex-shrink: 0; margin-left: 8px;">
@@ -1104,6 +1221,98 @@
         return;
       }
       
+      if (currentTab === 'Pomodoro') {
+        const isLightMode = document.body.classList.contains('light-mode');
+        const emptyTextColor = isLightMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)';
+        
+        let m = Math.floor(pomodoroTime / 60);
+        let s = pomodoroTime % 60;
+        let displayTime = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        
+        list.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: ${emptyTextColor};">
+          <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+             <span style="font-size: 1.1rem; font-weight: 500;">Focus for:</span>
+             <input type="number" id="pomodoroInput" class="glass-btn" value="${Math.floor(pomodoroTime / 60)}" min="1" max="120" style="width: 70px; padding: 6px; text-align: center; font-size: 1.1rem; color: inherit; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;" onchange="setPomodoroTime(this.value)" ${pomodoroInterval ? 'disabled' : ''}>
+             <span style="font-size: 1.1rem; font-weight: 500;">minutes</span>
+          </div>
+
+          <div style="margin-bottom: 30px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+            <div style="font-size: 0.9rem; font-weight: 600; opacity: 0.8; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase;">Ends At</div>
+            <div class="analog-clock" style="margin: 0; width: 120px; height: 120px;">
+              <div class="clock-center" style="width: 6px; height: 6px;"></div>
+              <div class="clock-hand hand-hour" id="pomoHour" style="height: 35px; width: 4px;"></div>
+              <div class="clock-hand hand-minute" id="pomoMinute" style="height: 45px; width: 3px;"></div>
+              <div class="clock-mark" style="transform: rotate(0deg); top: 6px; transform-origin: 50% 54px; height: 8px;"></div>
+              <div class="clock-mark" style="transform: rotate(30deg); top: 6px; transform-origin: 50% 54px;"></div>
+              <div class="clock-mark" style="transform: rotate(60deg); top: 6px; transform-origin: 50% 54px;"></div>
+              <div class="clock-mark" style="transform: rotate(90deg); top: 6px; transform-origin: 50% 54px; height: 8px;"></div>
+              <div class="clock-mark" style="transform: rotate(120deg); top: 6px; transform-origin: 50% 54px;"></div>
+              <div class="clock-mark" style="transform: rotate(150deg); top: 6px; transform-origin: 50% 54px;"></div>
+              <div class="clock-mark" style="transform: rotate(180deg); top: 6px; transform-origin: 50% 54px; height: 8px;"></div>
+              <div class="clock-mark" style="transform: rotate(210deg); top: 6px; transform-origin: 50% 54px;"></div>
+              <div class="clock-mark" style="transform: rotate(240deg); top: 6px; transform-origin: 50% 54px;"></div>
+              <div class="clock-mark" style="transform: rotate(270deg); top: 6px; transform-origin: 50% 54px; height: 8px;"></div>
+              <div class="clock-mark" style="transform: rotate(300deg); top: 6px; transform-origin: 50% 54px;"></div>
+              <div class="clock-mark" style="transform: rotate(330deg); top: 6px; transform-origin: 50% 54px;"></div>
+            </div>
+            <div id="pomoEndText" style="margin-top: 12px; font-weight: 700; font-size: 1.1rem;">--:--</div>
+          </div>
+
+          <div style="font-size: 5rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 30px; color: inherit; text-shadow: 0 4px 12px rgba(0,0,0,0.1);" id="pomodoroDisplay">${displayTime}</div>
+          
+          <div style="display: flex; gap: 16px;">
+            <button class="glass-btn primary" style="padding: 12px 32px; font-size: 1.1rem; border-radius: 20px;" onclick="startPomodoro()">Start</button>
+            <button class="glass-btn" style="padding: 12px 32px; font-size: 1.1rem; border-radius: 20px;" onclick="pausePomodoro()">Pause</button>
+            <button class="glass-btn" style="padding: 12px 32px; font-size: 1.1rem; border-radius: 20px;" onclick="resetPomodoro()">Reset</button>
+          </div>
+        </div>
+        `;
+        setTimeout(updatePomodoroDisplay, 0); // Trigger update to set analog clock right away
+        return;
+      }
+      
+      if (currentTab === 'Stats') {
+        const completedTasks = tasks.filter(t => t.done).length;
+        const totalTasks = tasks.length;
+        const workTasks = tasks.filter(t => t.category === 'Work').length;
+        const personalTasks = tasks.filter(t => t.category === 'Personal').length;
+        const urgentTasks = tasks.filter(t => t.category === 'Urgent').length;
+
+        list.innerHTML = `
+        <div style="padding: 20px; max-width: 600px; margin: 0 auto;">
+          <h3 style="margin-bottom: 15px; font-size: 1.2rem;">Productivity Overview</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="glass-btn" style="padding: 24px; cursor: default; text-align: center; border-radius: 16px;">
+              <div style="font-size: 2.5rem; font-weight: 700; color: #4ade80; margin-bottom: 8px;">${completedTasks}</div>
+              <div style="opacity: 0.8; font-size: 0.95rem;">Tasks Completed</div>
+            </div>
+            <div class="glass-btn" style="padding: 24px; cursor: default; text-align: center; border-radius: 16px;">
+              <div style="font-size: 2.5rem; font-weight: 700; color: #a855f7; margin-bottom: 8px;">${totalTasks}</div>
+              <div style="opacity: 0.8; font-size: 0.95rem;">Total Tasks</div>
+            </div>
+          </div>
+          
+          <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">By Category</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+            <div class="glass-btn" style="padding: 16px; cursor: default; text-align: center; border-radius: 12px;">
+              <div style="font-size: 1.8rem; font-weight: 600; margin-bottom: 4px;">${workTasks}</div>
+              <div style="opacity: 0.7; font-size: 0.85rem;">Work</div>
+            </div>
+            <div class="glass-btn" style="padding: 16px; cursor: default; text-align: center; border-radius: 12px;">
+              <div style="font-size: 1.8rem; font-weight: 600; margin-bottom: 4px;">${personalTasks}</div>
+              <div style="opacity: 0.7; font-size: 0.85rem;">Personal</div>
+            </div>
+            <div class="glass-btn" style="padding: 16px; cursor: default; text-align: center; border-radius: 12px;">
+              <div style="font-size: 1.8rem; font-weight: 600; color: #fb7185; margin-bottom: 4px;">${urgentTasks}</div>
+              <div style="opacity: 0.7; font-size: 0.85rem;">Urgent</div>
+            </div>
+          </div>
+        </div>
+        `;
+        return;
+      }
+      
       let filtered = [];
       if (currentTab === 'Completed') {
         filtered = tasks.filter(t => t.done);
@@ -1124,6 +1333,152 @@
       filtered.forEach(t => {
         list.appendChild(createTaskCard(t, localToday));
       });
+    }
+
+    let pomodoroTime = 25 * 60;
+    let pomodoroInterval = null;
+    let pomodoroEndTime = null;
+
+    function setPomodoroTime(val) {
+      if (pomodoroInterval) return;
+      let minutes = parseInt(val);
+      if (isNaN(minutes) || minutes <= 0) minutes = 25;
+      pomodoroTime = minutes * 60;
+      updatePomodoroDisplay();
+    }
+    
+    function startPomodoro() {
+      if (pomodoroInterval) return;
+      pomodoroEndTime = Date.now() + pomodoroTime * 1000;
+      const inputEl = document.getElementById('pomodoroInput');
+      if(inputEl) inputEl.disabled = true;
+      
+      pomodoroInterval = setInterval(() => {
+        if (pomodoroTime > 0) {
+          pomodoroTime--;
+          updatePomodoroDisplay();
+        } else {
+          clearInterval(pomodoroInterval);
+          pomodoroInterval = null;
+          pomodoroEndTime = null;
+          const inp = document.getElementById('pomodoroInput');
+          if(inp) inp.disabled = false;
+          ipc.send('show-notification', { title: 'Focus Timer', body: 'Time is up! Take a break.' });
+          pomodoroTime = 5 * 60; // default 5 min break
+          updatePomodoroDisplay();
+        }
+      }, 1000);
+      updatePomodoroDisplay();
+    }
+    
+    function pausePomodoro() {
+      clearInterval(pomodoroInterval);
+      pomodoroInterval = null;
+      pomodoroEndTime = null;
+      const inputEl = document.getElementById('pomodoroInput');
+      if(inputEl) inputEl.disabled = false;
+      updatePomodoroDisplay();
+    }
+    
+    function resetPomodoro() {
+      clearInterval(pomodoroInterval);
+      pomodoroInterval = null;
+      pomodoroEndTime = null;
+      const inputEl = document.getElementById('pomodoroInput');
+      if(inputEl) {
+        inputEl.disabled = false;
+        let val = parseInt(inputEl.value);
+        if(isNaN(val) || val <= 0) val = 25;
+        pomodoroTime = val * 60;
+      } else {
+        pomodoroTime = 25 * 60;
+      }
+      updatePomodoroDisplay();
+    }
+    
+    function updatePomodoroDisplay() {
+      const display = document.getElementById('pomodoroDisplay');
+      if (display) {
+        let m = Math.floor(pomodoroTime / 60);
+        let s = pomodoroTime % 60;
+        display.innerText = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+      }
+
+      const pHour = document.getElementById('pomoHour');
+      const pMinute = document.getElementById('pomoMinute');
+      const pText = document.getElementById('pomoEndText');
+      
+      if (pHour && pMinute) {
+        let d = new Date();
+        if (pomodoroInterval && pomodoroEndTime) {
+           d = new Date(pomodoroEndTime);
+        } else {
+           d = new Date(Date.now() + pomodoroTime * 1000);
+        }
+        const h = d.getHours();
+        const m = d.getMinutes();
+        const hDeg = (h % 12) * 30 + (m / 2);
+        const mDeg = m * 6;
+        pHour.style.transform = `rotate(${hDeg}deg)`;
+        pMinute.style.transform = `rotate(${mDeg}deg)`;
+        
+        if (pText) {
+          pText.innerText = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        }
+      }
+    }
+
+    let draggedTaskId = null;
+    let draggedElement = null;
+
+    function handleDragStart(e) {
+      if(e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'button') return;
+      draggedTaskId = parseFloat(this.dataset.id);
+      draggedElement = this;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.dataset.id);
+      setTimeout(() => this.style.opacity = '0.4', 0);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      return false;
+    }
+    
+    function handleDragEnter(e) {
+      this.classList.add('over');
+    }
+    
+    function handleDragLeave(e) {
+      this.classList.remove('over');
+    }
+
+    function handleDrop(e) {
+      e.stopPropagation();
+      this.classList.remove('over');
+      if (draggedElement !== this && draggedTaskId !== null) {
+        const targetId = parseFloat(this.dataset.id);
+        const sourceIndex = tasks.findIndex(t => t.id === draggedTaskId);
+        const targetIndex = tasks.findIndex(t => t.id === targetId);
+        
+        if (sourceIndex > -1 && targetIndex > -1) {
+          const [movedTask] = tasks.splice(sourceIndex, 1);
+          tasks.splice(targetIndex, 0, movedTask);
+          saveTasks();
+          renderTasks();
+        }
+      }
+      return false;
+    }
+    
+    function handleDragEnd(e) {
+      if (draggedElement) {
+        draggedElement.style.opacity = '1';
+      }
+      document.querySelectorAll('.task-card').forEach(c => c.classList.remove('over'));
+      draggedTaskId = null;
+      draggedElement = null;
     }
   </script>
 </body>
