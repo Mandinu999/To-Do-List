@@ -6,7 +6,8 @@ Features a stunning **Liquid Glass (iOS 26-inspired)** design language with smoo
 
 ## Features
 - **Liquid Glass UI:** Blurry, frosted glass containers with a sleek aesthetic.
-  <img width="950" height="648" alt="image" src="https://github.com/user-attachments/assets/9705d247-6bc2-4ad6-9fd7-0145ff0ab595" />
+  <img width="951" height="646" alt="image" src="https://github.com/user-attachments/assets/cccc9c82-41f6-4954-b6dd-a55916ff6b9b" />
+
 
 - **Dark & Light Mode:** Seamless, animated transitions between themes.
   <img width="947" height="646" alt="image" src="https://github.com/user-attachments/assets/b336330f-95b3-4a75-a861-ea8d3f41c8d8" />
