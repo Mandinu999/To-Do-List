@@ -2,7 +2,7 @@
 
 A beautifully designed, standalone To-Do List desktop application built with Electron, HTML, CSS, and JavaScript. 
 
-Features a stunning **Liquid Glass (iOS 26-inspired)** design language with smooth animations, dark/light mode toggling, and native desktop window integration.
+Features a stunning **Liquid Glass** design language with smooth animations, dark/light mode toggling, and native desktop window integration.
 
 ## Features
 - **Liquid Glass UI:** Blurry, frosted glass containers with a sleek aesthetic.
